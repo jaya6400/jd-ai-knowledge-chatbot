@@ -34,7 +34,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.3.0",
+    "@nestjs/cli": "^11.0.24",
     "@nestjs/schematics": "^10.1.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/ioredis": "^4.28.10",
