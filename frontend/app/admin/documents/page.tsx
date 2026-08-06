@@ -18,7 +18,7 @@ interface Doc {
 }
 
 export default function DocumentsPage() {
-  const { user, getToken, logout } = useAuth();
+  const { user, loading: authLoading, getToken, logout } = useAuth();
   const router = useRouter();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [search, setSearch] = useState("");
@@ -26,12 +26,13 @@ export default function DocumentsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push("/admin/login");
       return;
     }
     fetchDocs();
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const fetchDocs = async () => {
     try {
@@ -89,7 +90,15 @@ export default function DocumentsPage() {
     }
   };
 
-  const filtered = docs.filter(d => d.original_name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = docs.filter((d) => d.original_name.toLowerCase().includes(search.toLowerCase()));
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500">Loading...</p>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -124,13 +133,7 @@ export default function DocumentsPage() {
             />
           </div>
           <div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleUpload}
-              className="hidden"
-            />
+            <input ref={fileRef} type="file" accept=".pdf" onChange={handleUpload} className="hidden" />
             <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
               <Upload className="w-4 h-4 mr-2" />
               {uploading ? "Uploading..." : "Upload PDF"}
@@ -179,7 +182,11 @@ export default function DocumentsPage() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">No documents found</td></tr>
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                      No documents found
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

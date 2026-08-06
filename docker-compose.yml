@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -39,6 +37,11 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - PERSIST_DIRECTORY=/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ai-service:
     build: ./ai-service
@@ -49,18 +52,27 @@ services:
       - REDIS_URL=redis://redis:6379
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
-      - GEMINI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=postgresql+asyncpg://raguser:ragpassword@postgres:5432/ragdb
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_API_KEY=${GEMINI_API_KEY}
     volumes:
       - shared_uploads:/app/uploads
     depends_on:
       redis:
         condition: service_healthy
       chroma:
-        condition: service_started
-      postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
   backend:
     build: ./backend
@@ -72,7 +84,6 @@ services:
       - DATABASE_URL=postgresql://raguser:ragpassword@postgres:5432/ragdb
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=super-secret-jwt-key-change-in-production
-      - AI_SERVICE_URL=http://ai-service:8000
     volumes:
       - shared_uploads:/app/uploads
     depends_on:
@@ -81,7 +92,7 @@ services:
       redis:
         condition: service_healthy
       ai-service:
-        condition: service_started
+        condition: service_healthy  # Wait for AI service to be healthy, not just started
     restart: unless-stopped
 
   frontend:
@@ -90,8 +101,9 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
-    restart: unless-stopped  
+      backend:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   postgres_data:

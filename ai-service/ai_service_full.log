@@ -1,0 +1,30 @@
+rag_ai_service  | /usr/local/lib/python3.11/site-packages/pypdf/_crypt_providers/_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+rag_ai_service  |   from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+rag_ai_service  | INFO:     Started server process [1]
+rag_ai_service  | INFO:     Waiting for application startup.
+rag_ai_service  | AI Service: Connecting to Redis...
+rag_ai_service  | INFO:     Application startup complete.
+rag_ai_service  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+rag_ai_service  | AI Service: Redis ping succeeded
+rag_ai_service  | AI Service: Listening on ai_requests channel
+rag_ai_service  | INFO:     127.0.0.1:55732 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:42916 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+rag_ai_service  | INFO:     127.0.0.1:44944 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:45690 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+rag_ai_service  | DEBUG: Attempting to read PDF from expected path: /app/uploads/1786014579837-137970222.pdf
+rag_ai_service  | INFO:     127.0.0.1:33664 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:52242 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:38270 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:46140 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:46520 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:33738 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:42798 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:53318 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:53454 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:56268 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:49076 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:47168 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:39100 - "GET /health HTTP/1.1" 200 OK
+rag_ai_service  | INFO:     127.0.0.1:45890 - "GET /health HTTP/1.1" 200 OK

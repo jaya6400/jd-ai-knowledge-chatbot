@@ -34,17 +34,26 @@ export class DocumentsController {
   }))
   async upload(@UploadedFile() file: Express.Multer.File) {
     const doc = await this.docsService.create(file.filename, file.originalname);
-    await this.docsService.processDocument(doc.id, file.filename);
-    return doc;
+    try {
+      await this.docsService.processDocument(doc.id, file.filename);
+    } catch {
+      // Already marked 'failed' inside processDocument; swallow here so the
+      // client gets a normal response instead of a 500 on timeout
+    }
+    return this.docsService.findOne(doc.id);
   }
 
   @Post(':id/reprocess')
   @UseGuards(JwtAuthGuard)
   async reprocess(@Param('id') id: string) {
-    const doc = await this.docsService.findAll().then(list => list.find(d => d.id === id));
+    const doc = await this.docsService.findOne(id);
     if (!doc) return { error: 'Not found' };
-    await this.docsService.processDocument(doc.id, doc.filename);
-    return { message: 'Reprocessing started' };
+    try {
+      await this.docsService.processDocument(doc.id, doc.filename);
+    } catch {
+      // Already marked 'failed' inside processDocument
+    }
+    return this.docsService.findOne(id);
   }
 
   @Delete(':id')

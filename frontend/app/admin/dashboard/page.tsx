@@ -22,19 +22,20 @@ interface Doc {
 }
 
 export default function DashboardPage() {
-  const { user, getToken, logout } = useAuth();
+  const { user, loading: authLoading, getToken, logout } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentDocs, setRecentDocs] = useState<Doc[]>([]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push("/admin/login");
       return;
     }
     fetchStats();
     fetchRecentDocs();
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const fetchStats = async () => {
     try {
@@ -59,6 +60,14 @@ export default function DashboardPage() {
       console.error(e);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500">Loading...</p>
+      </div>
+    );
+  }
 
   if (!user) return null;
 

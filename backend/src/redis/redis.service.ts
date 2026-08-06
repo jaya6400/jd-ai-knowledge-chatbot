@@ -1,63 +1,84 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 
+interface PendingRequest {
+  resolve: (value: any) => void;
+  reject: (reason: Error) => void;
+  timeout: NodeJS.Timeout;
+}
+
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private publisher: RedisClientType;
-  private subscriber: RedisClientType;
-  private pendingRequests = new Map<string, { resolve: Function; reject: Function; timer: NodeJS.Timeout }>();
+export class RedisService implements OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
+  private pubClient: RedisClientType;
+  private subClient: RedisClientType;
+  private pending = new Map<string, PendingRequest>();
+  private readonly responseChannel = 'ai_responses';
 
-  async onModuleInit() {
-    const url = process.env.REDIS_URL || 'redis://localhost:6379';
-    this.publisher = createClient({ url });
-    this.subscriber = createClient({ url });
+  constructor() {
+    const url = process.env.REDIS_URL || 'redis://redis:6379';
+    this.pubClient = createClient({ url });
+    this.subClient = createClient({ url });
 
-    await this.publisher.connect();
-    await this.subscriber.connect();
+    this.pubClient.connect().catch((e) => this.logger.error('Redis pub connect error:', e));
 
-    await this.subscriber.subscribe('ai_responses', (message) => {
-      try {
-        const data = JSON.parse(message);
-        if (data.request_id && this.pendingRequests.has(data.request_id)) {
-          const { resolve, timer } = this.pendingRequests.get(data.request_id);
-          clearTimeout(timer);
-          this.pendingRequests.delete(data.request_id);
-          resolve(data);
-        }
-      } catch (e) {
-        console.error('Redis response parse error:', e);
-      }
-    });
-
-    console.log('Redis Pub/Sub connected');
+    this.subClient
+      .connect()
+      .then(() => this.subClient.subscribe(this.responseChannel, (msg) => this.handleMessage(msg)))
+      .catch((e) => this.logger.error('Redis sub connect error:', e));
   }
 
-  async onModuleDestroy() {
-    await this.publisher.quit();
-    await this.subscriber.quit();
+  onModuleDestroy() {
+    // Reject anything still waiting so callers don't hang forever on shutdown
+    for (const [, req] of this.pending) {
+      clearTimeout(req.timeout);
+      req.reject(new Error('Redis service shutting down'));
+    }
+    this.pending.clear();
+
+    this.pubClient.quit().catch(() => {});
+    this.subClient.quit().catch(() => {});
   }
 
-  async publishAndWait(channel: string, payload: any, timeoutMs = 60000): Promise<any> {
-    const request_id = uuidv4();
-    const message = JSON.stringify({ ...payload, request_id });
+  private handleMessage(msg: string) {
+    let data: any;
+    try {
+      data = JSON.parse(msg);
+    } catch {
+      this.logger.warn('Received malformed message on ai_responses, ignoring');
+      return;
+    }
+
+    const requestId = data.request_id;
+    const pending = this.pending.get(requestId);
+    if (!pending) {
+      // No one waiting (already timed out, or not ours) — safe to ignore
+      return;
+    }
+
+    this.pending.delete(requestId);
+    clearTimeout(pending.timeout);
+    pending.resolve(data);
+  }
+
+  async publishAndWait(channel: string, message: any, timeoutMs: number): Promise<any> {
+    const requestId = uuidv4();
 
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingRequests.delete(request_id);
+      const timeout = setTimeout(() => {
+        this.pending.delete(requestId);
         reject(new Error('AI service timeout'));
       }, timeoutMs);
 
-      this.pendingRequests.set(request_id, { resolve, reject, timer });
-      this.publisher.publish(channel, message).catch((err) => {
-        clearTimeout(timer);
-        this.pendingRequests.delete(request_id);
-        reject(err);
+      this.pending.set(requestId, { resolve, reject, timeout });
+
+      const payload = JSON.stringify({ ...message, request_id: requestId });
+      this.pubClient.publish(channel, payload).catch((err) => {
+        this.pending.delete(requestId);
+        clearTimeout(timeout);
+        reject(new Error(`Redis error: ${err.message}`));
       });
     });
-  }
-
-  async publish(channel: string, payload: any): Promise<void> {
-    await this.publisher.publish(channel, JSON.stringify(payload));
   }
 }

@@ -1,44 +1,70 @@
 import json
-from typing import List
+import os
+import chromadb
 from langchain_core.documents import Document
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import Chroma
+from tenacity import retry, wait_exponential, stop_after_attempt
 from .state import GraphState
+from ..services.custom_embeddings import GeminiEmbeddings
 from ..config import settings
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.5-flash",
-    temperature=0.2,
-    google_api_key=settings.google_api_key,
-)
+_llm = None
+_embeddings = None
+_vector_store = None
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001",
-    google_api_key=settings.google_api_key,
-)
+def _get_api_key():
+    return settings.gemini_api_key
 
-vector_store = None
+def get_llm():
+    global _llm
+    if _llm is None:
+        key = _get_api_key()
+        if not key:
+            raise ValueError("GEMINI_API_KEY is not set.")
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            temperature=0.2,
+            google_api_key=key,
+        )
+    return _llm
+
+def get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = GeminiEmbeddings()
+    return _embeddings
 
 def get_vector_store():
-    global vector_store
-    if vector_store is None:
-        vector_store = Chroma(
-            collection_name="documents",
-            embedding_function=embeddings,
-            client_settings={
-                "chroma_server_host": settings.chroma_host,
-                "chroma_server_http_port": settings.chroma_port,
-            },
+    global _vector_store
+    if _vector_store is None:
+        client = chromadb.HttpClient(
+            host=settings.chroma_host,
+            port=settings.chroma_port
         )
-    return vector_store
+        _vector_store = Chroma(
+            client=client,
+            collection_name="documents",
+            embedding_function=get_embeddings(),
+        )
+    return _vector_store
+
+@retry(
+    wait=wait_exponential(multiplier=1, min=2, max=15),
+    stop=stop_after_attempt(3),
+    reraise=True,
+)
+def _similarity_search_with_retry(store, query: str, k: int = 5):
+    return store.similarity_search(query, k=k)
 
 def retrieve_node(state: GraphState) -> GraphState:
     try:
         store = get_vector_store()
-        docs = store.similarity_search(state["question"], k=5)
+        docs = _similarity_search_with_retry(store, state["question"], k=5)
         return {**state, "context": docs}
     except Exception as e:
+        print(f"Retrieve error after retries: {e}", flush=True)
         return {**state, "context": [], "error": str(e)}
 
 def generate_answer_node(state: GraphState) -> GraphState:
@@ -58,7 +84,7 @@ def generate_answer_node(state: GraphState) -> GraphState:
         for m in history[-6:]
     ])
 
-    chain = prompt | llm
+    chain = prompt | get_llm()
     response = chain.invoke({
         "context": context_text,
         "history": history_str,
@@ -80,7 +106,7 @@ def generate_suggestions_node(state: GraphState) -> GraphState:
         ("human", "Question: {question}\nAnswer: {answer}\n\nGenerate follow-up questions as JSON array:")
     ])
 
-    chain = prompt | llm
+    chain = prompt | get_llm()
     response = chain.invoke({
         "question": state["question"],
         "answer": state["answer"]

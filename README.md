@@ -58,7 +58,7 @@ cp .env.example .env
 ### 2. Run Everything
 
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
 
 Wait for all services to start (about 60-90 seconds on first run).
