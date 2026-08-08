@@ -18,19 +18,32 @@ export class RedisService implements OnModuleDestroy {
 
   constructor() {
     const url = process.env.REDIS_URL || 'redis://redis:6379';
-    this.pubClient = createClient({ url });
-    this.subClient = createClient({ url });
 
-    this.pubClient.connect().catch((e) => this.logger.error('Redis pub connect error:', e));
+    this.pubClient = createClient({
+      url,
+      socket: { reconnectStrategy: (retries) => Math.min(retries * 100, 3000) },
+    });
+    this.subClient = createClient({
+      url,
+      socket: { reconnectStrategy: (retries) => Math.min(retries * 100, 3000) },
+    });
+
+    // CRITICAL: without these, an unhandled 'error' event crashes the process
+    this.pubClient.on('error', (err) => this.logger.error(`Redis pub client error: ${err.message}`));
+    this.subClient.on('error', (err) => this.logger.error(`Redis sub client error: ${err.message}`));
+
+    this.pubClient.on('reconnecting', () => this.logger.warn('Redis pub client reconnecting...'));
+    this.subClient.on('reconnecting', () => this.logger.warn('Redis sub client reconnecting...'));
+
+    this.pubClient.connect().catch((e) => this.logger.error(`Redis pub connect error: ${e.message}`));
 
     this.subClient
       .connect()
       .then(() => this.subClient.subscribe(this.responseChannel, (msg) => this.handleMessage(msg)))
-      .catch((e) => this.logger.error('Redis sub connect error:', e));
+      .catch((e) => this.logger.error(`Redis sub connect error: ${e.message}`));
   }
 
   onModuleDestroy() {
-    // Reject anything still waiting so callers don't hang forever on shutdown
     for (const [, req] of this.pending) {
       clearTimeout(req.timeout);
       req.reject(new Error('Redis service shutting down'));
@@ -52,10 +65,7 @@ export class RedisService implements OnModuleDestroy {
 
     const requestId = data.request_id;
     const pending = this.pending.get(requestId);
-    if (!pending) {
-      // No one waiting (already timed out, or not ours) — safe to ignore
-      return;
-    }
+    if (!pending) return;
 
     this.pending.delete(requestId);
     clearTimeout(pending.timeout);

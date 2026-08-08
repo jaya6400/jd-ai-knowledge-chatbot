@@ -24,9 +24,11 @@ def get_llm():
         if not key:
             raise ValueError("GEMINI_API_KEY is not set.")
         _llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-3.5-flash",
             temperature=0.2,
             google_api_key=key,
+            transport="rest",  # avoid eager grpc.aio channel construction, which needs
+                                # a running uvloop-compatible loop unavailable in worker threads
         )
     return _llm
 

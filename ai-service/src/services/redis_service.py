@@ -1,10 +1,24 @@
-import json
+# redis_service.py
 import asyncio
+import json
 import redis.asyncio as redis
 from ..config import settings
 from ..graph.workflow import app as graph_app
 from ..services.pdf_processor import extract_text_from_pdf, chunk_documents
 from ..services.vector_store import add_documents, delete_by_source
+import traceback
+
+def _invoke_graph_in_thread(payload: dict):
+    """Runs inside a ThreadPoolExecutor worker thread, which has no event
+    loop by default. Some LangChain internals expect one to exist, so we
+    create and set one here before calling graph_app.invoke."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return graph_app.invoke(payload)
+    finally:
+        loop.close()
+
 
 class RedisService:
     def __init__(self):
@@ -58,17 +72,18 @@ class RedisService:
 
     async def _handle_chat(self, request_id: str, data: dict):
         try:
+            payload = {
+                "question": data["question"],
+                "chat_history": data.get("chat_history", []),
+                "context": [],
+                "answer": "",
+                "sources": [],
+                "suggested_questions": [],
+                "error": None,
+            }
             result = await asyncio.wait_for(
-                asyncio.to_thread(graph_app.invoke, {
-                    "question": data["question"],
-                    "chat_history": data.get("chat_history", []),
-                    "context": [],
-                    "answer": "",
-                    "sources": [],
-                    "suggested_questions": [],
-                    "error": None,
-                }),
-                timeout=60,  # chat should be fast; if it hangs past this, something's wrong
+                asyncio.to_thread(_invoke_graph_in_thread, payload),
+                timeout=60,
             )
             return {
                 "request_id": request_id,
@@ -88,6 +103,8 @@ class RedisService:
                 "error": "Chat processing timed out",
             }
         except Exception as e:
+            print(f"[_handle_chat] Error for request {request_id}: {type(e).__name__}: {e}", flush=True)
+            print(traceback.format_exc(), flush=True)
             return {
                 "request_id": request_id,
                 "answer": "Sorry, I encountered an error.",
@@ -125,12 +142,12 @@ class RedisService:
                 "page_count": page_count,
                 "chunks": len(docs),
             }
-        except asyncio.TimeoutError as e:
-            print(f"[process_pdf] Step timed out for {data.get('file_path')}: {e}", flush=True)
+        except asyncio.TimeoutError:
+            print(f"[process_pdf] Step timed out for {data.get('file_path')}", flush=True)
             return {
                 "request_id": request_id,
                 "success": False,
-                "error": "PDF processing step timed out — likely a Chroma connection issue",
+                "error": "PDF processing step timed out",
             }
         except Exception as e:
             print(f"PDF processing error: {e}", flush=True)

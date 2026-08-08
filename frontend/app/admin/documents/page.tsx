@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, Upload, Search, Trash2, RefreshCw, FileText, ArrowLeft } from "lucide-react";
+import { SizeWarningDialog, SAFE_SIZE_BYTES } from "@/components/ui/SizeWarningDialog";
 
 interface Doc {
   id: string;
@@ -23,6 +24,8 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showSizeWarning, setShowSizeWarning] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,9 +47,7 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = async (file: File) => {
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
@@ -63,6 +64,34 @@ export default function DocumentsPage() {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > SAFE_SIZE_BYTES) {
+      setPendingFile(file);
+      setShowSizeWarning(true);
+      // don't clear the input yet — we need it in case the user cancels
+      // and wants to pick a different file; upload path clears it after
+    } else {
+      uploadFile(file);
+    }
+  };
+
+  const handleConfirmLargeUpload = () => {
+    setShowSizeWarning(false);
+    if (pendingFile) {
+      uploadFile(pendingFile);
+      setPendingFile(null);
+    }
+  };
+
+  const handleCancelLargeUpload = () => {
+    setShowSizeWarning(false);
+    setPendingFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleDelete = async (id: string) => {
@@ -133,7 +162,7 @@ export default function DocumentsPage() {
             />
           </div>
           <div>
-            <input ref={fileRef} type="file" accept=".pdf" onChange={handleUpload} className="hidden" />
+            <input ref={fileRef} type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
             <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
               <Upload className="w-4 h-4 mr-2" />
               {uploading ? "Uploading..." : "Upload PDF"}
@@ -193,6 +222,16 @@ export default function DocumentsPage() {
           </CardContent>
         </Card>
       </main>
+
+      {pendingFile && (
+        <SizeWarningDialog
+          open={showSizeWarning}
+          fileSizeBytes={pendingFile.size}
+          fileName={pendingFile.name}
+          onConfirm={handleConfirmLargeUpload}
+          onCancel={handleCancelLargeUpload}
+        />
+      )}
     </div>
   );
 }

@@ -4,29 +4,30 @@ A production-ready PDF Knowledge Base AI Chatbot built with Next.js, NestJS, Fas
 
 ## Live Demo & Deployment
 
-- **Frontend (Vercel):** [Add your Vercel deployment URL here]
+- **Frontend (Vercel):** [Link](https://jd-ai-knowledge-chatbot.vercel.app/)
 - **Backend:** Not deployed yet (requires persistent compute + DB)
-- **Video Demo:** [Add your Loom/YouTube link here]
+- **Video Demo:** [Link]()
+
+- [AI PDF RAG-Based ChatBot](docs/screenshots/follow-up-question-ai-answer.PNG)
 
 ## Architecture
 
-```
 Next.js Frontend
-       │
-       ▼
+│
+▼
 Node.js Backend (NestJS)
-       │
-  Redis Pub/Sub
-       │
-       ▼
+│
+Redis Pub/Sub
+│
+▼
 Python AI Service (FastAPI + LangChain + LangGraph)
-       │
-       ▼
+│
+▼
 Vector Database (ChromaDB)
-       │
-       ▼
+│
+▼
 Database (PostgreSQL)
-```
+
 
 ## Tech Stack
 
@@ -34,7 +35,7 @@ Database (PostgreSQL)
 |-------|------|
 | Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui |
 | Backend | NestJS, TypeScript, TypeORM, PostgreSQL |
-| AI Service | Python, FastAPI, LangChain, LangGraph, OpenAI |
+| AI Service | Python, FastAPI, LangChain, LangGraph, Google Gemini |
 | Vector DB | ChromaDB |
 | Message Bus | Redis Pub/Sub |
 | DevOps | Docker, Docker Compose |
@@ -44,21 +45,21 @@ Database (PostgreSQL)
 ### Prerequisites
 
 - Docker & Docker Compose
-- OpenAI API Key (get one at https://platform.openai.com)
+- Gemini API Key (get one at https://aistudio.google.com/apikey)
 
 ### 1. Clone & Configure
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/jaya6400/jd-ai-knowledge-chatbot.git
 cd jd-ai-knowledge-chatbot
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+# Edit .env and add your GEMINI_API_KEY
 ```
 
 ### 2. Run Everything
 
 ```bash
-docker-compose up --build -d
+docker compose up -d --build
 ```
 
 Wait for all services to start (about 60-90 seconds on first run).
@@ -83,15 +84,14 @@ The backend automatically creates an admin user on first run:
 
 ## Project Structure
 
-```
 ai-knowledge-chatbot/
 ├── docker-compose.yml
 ├── .env.example
 ├── README.md
-├── frontend/          # Next.js 14 + shadcn/ui
-├── backend/           # NestJS + TypeORM
-└── ai-service/        # FastAPI + LangGraph
-```
+├── frontend/ # Next.js 14 + shadcn/ui
+├── backend/ # NestJS + TypeORM
+└── ai-service/ # FastAPI + LangGraph
+
 
 ## Features
 
@@ -110,21 +110,21 @@ ai-knowledge-chatbot/
 - Fully responsive UI
 
 ### AI Pipeline (LangGraph)
-```
+
 Receive Question
-       │
-       ▼
+│
+▼
 Retrieve Context (ChromaDB vector search)
-       │
-       ▼
-Generate Answer (OpenAI GPT-4o-mini)
-       │
-       ▼
+│
+▼
+Generate Answer (Gemini 1.5 Flash)
+│
+▼
 Generate Suggested Questions
-       │
-       ▼
+│
+▼
 Return Response
-```
+
 
 ### Communication
 - Backend and AI service communicate exclusively via Redis Pub/Sub
@@ -141,25 +141,20 @@ Once running, access:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API key for LLM and embeddings |
+| `GEMINI_API_KEY` | Yes | Gemini API key for LLM and embeddings |
 | `DATABASE_URL` | No | Override database connection string |
 | `REDIS_URL` | No | Override Redis connection string |
 
-## Evaluation Checklist
+## Screenshots
 
-- [x] Next.js Frontend (App Router, TypeScript, Tailwind, shadcn/ui)
-- [x] Node.js Backend (NestJS, TypeScript)
-- [x] Python AI Service (FastAPI, LangChain, LangGraph)
-- [x] Redis Pub/Sub Integration
-- [x] PostgreSQL Database with TypeORM
-- [x] ChromaDB Vector Database
-- [x] PDF Upload & Processing
-- [x] RAG Pipeline with Source Citations
-- [x] Suggested Follow-up Questions
-- [x] Conversation Memory
-- [x] Streaming Responses
-- [x] Docker Compose Setup
-- [x] Clean Architecture & MVC Pattern
+1. Admin PDF Upload Screen
+- [Admin PDF Upload Screen](docs/screenshots/upload-pdf-admin-dashboard.PNG)
+
+2. AI Chat Dashboard
+- [Chat Dashboard](docs/screenshots/chat-ai.PNG)
+
+3. Docker containers
+- [Docker terminal](docs/screenshots/docker-continers-terminal.PNG)
 
 ## License
 

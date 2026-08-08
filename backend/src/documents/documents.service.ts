@@ -39,9 +39,9 @@ export class DocumentsService {
   }
 
   async getStats() {
-    const total = await this.docRepo.count();
+    const total_pdfs = await this.docRepo.count();
     const processing = await this.docRepo.count({ where: { status: 'processing' } });
-    return { total, processing };
+    return { total_pdfs, processing };
   }
 
   async markFailed(docId: string) {
