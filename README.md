@@ -8,7 +8,7 @@ A production-ready PDF Knowledge Base AI Chatbot built with Next.js, NestJS, Fas
 - **Backend:** Not deployed yet (requires persistent compute + DB)
 - **Video Demo:** [LINK](https://youtu.be/92ZApl3EOfc)
 
-- [AI PDF RAG-Based ChatBot](docs/screenshots/follow-up-question-ai-answer.PNG)
+<img width="960" height="420" alt="follow-up-question-ai-answer" src="https://github.com/user-attachments/assets/967338b0-742c-4acf-8648-bfec1e7b987b" />
 
 ## Architecture
 
