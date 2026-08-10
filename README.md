@@ -4,9 +4,9 @@ A production-ready PDF Knowledge Base AI Chatbot built with Next.js, NestJS, Fas
 
 ## Live Demo & Deployment
 
-- **Frontend (Vercel):** [Link](https://jd-ai-knowledge-chatbot.vercel.app/)
+- **Frontend (Vercel):** [LINK](https://jd-ai-knowledge-chatbot.vercel.app/)
 - **Backend:** Not deployed yet (requires persistent compute + DB)
-- **Video Demo:** [Link]()
+- **Video Demo:** [LINK](https://youtu.be/92ZApl3EOfc)
 
 - [AI PDF RAG-Based ChatBot](docs/screenshots/follow-up-question-ai-answer.PNG)
 
