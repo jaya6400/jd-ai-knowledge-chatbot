@@ -13,19 +13,33 @@ A production-ready PDF Knowledge Base AI Chatbot built with Next.js, NestJS, Fas
 ## Architecture
 
 Next.js Frontend
+
 │
+
 ▼
+
 Node.js Backend (NestJS)
+
 │
+
 Redis Pub/Sub
+
 │
+
 ▼
+
 Python AI Service (FastAPI + LangChain + LangGraph)
+
 │
+
 ▼
+
 Vector Database (ChromaDB)
+
 │
+
 ▼
+
 Database (PostgreSQL)
 
 
@@ -85,12 +99,18 @@ The backend automatically creates an admin user on first run:
 ## Project Structure
 
 ai-knowledge-chatbot/
-├── docker-compose.yml
-├── .env.example
-├── README.md
-├── frontend/ # Next.js 14 + shadcn/ui
-├── backend/ # NestJS + TypeORM
-└── ai-service/ # FastAPI + LangGraph
+
+  ├── docker-compose.yml
+  
+  ├── .env.example
+  
+  ├── README.md
+  
+  ├── frontend/ # Next.js 14 + shadcn/ui
+  
+  ├── backend/ # NestJS + TypeORM
+  
+  └── ai-service/ # FastAPI + LangGraph
 
 
 ## Features
@@ -112,17 +132,29 @@ ai-knowledge-chatbot/
 ### AI Pipeline (LangGraph)
 
 Receive Question
+
 │
+
 ▼
+
 Retrieve Context (ChromaDB vector search)
+
 │
+
 ▼
-Generate Answer (Gemini 1.5 Flash)
+
+Generate Answer (Gemini 3.5 Flash)
+
 │
+
 ▼
+
 Generate Suggested Questions
+
 │
+
 ▼
+
 Return Response
 
 
